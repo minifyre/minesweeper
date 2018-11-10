@@ -1,0 +1,2 @@
+# minisweeper
+Another minesweeper clone.
