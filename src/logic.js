@@ -1,19 +1,5 @@
-import matrix from './matrix.js'
-import truth from '../node_modules/truth/truth.mjs'
-import v from '../node_modules/v/v.mjs'
 
-const config={}
-config.icons=
-{
-	'??':'?',
-	'flag':'O',
-	'mine':'*',
-	'misplaced':'x'
-}
-
-const
-input={},
-logic=function(cols,rows=cols,mines=cols)
+logic.setup=function(cols,rows=cols,mines=cols)
 {
 	const state=
 	{
@@ -55,38 +41,6 @@ logic=function(cols,rows=cols,mines=cols)
 
 	return state
 }
-
-input.block=evt=>evt.preventDefault()
-input.tile=function(state,evt)
-{
-	const
-	{file}=state,
-	target=evt.target,
-	i=parseInt(target.id),
-	{x,y}=matrix.i2pt(state.file.board,i)
-
-	if(state.file.status!=='started') return
-
-	if(target.nodeName.toLowerCase()!=='span') return 
-
-	if(evt.which===3) logic.toggleTile(state,x,y)
-
-	if(evt.which===1&&file.overlay.array[i]!=='flag')
-	{
-		if(file.board.array[i]==='mine')
-		{
-			logic.finish(state,'lose')
-			file.overlay.array[i]='bomb'
-		}
-		else if(file.overlay.array[i]==='hidden') logic.reveal(state,x,y)
-	}
-
-	if(file.unrevealed===file.mines) logic.finish(state,'win')
-	//@todo turn all remaining hidden tiles to flags
-
-	file.move+=1//@todo do not trigger if an empty tile is clicked
-}
-
 logic.finish=function(state,status='lose')
 {
 	const win=status==='win'
@@ -156,57 +110,3 @@ logic.toggleTile=function({file},x,y)
 	file.remaining+=inc
 	file.overlay.array[matrix.pt2i(file.overlay,{x,y})]=newVal
 }
-
-function output({file,view})
-{	
-	const
-	msgs=//@todo move base text into config
-	{
-		lose:':(',
-		started:':| '+file.remaining+'/'+file.mines,
-		win:':)'
-	},
-	h=file.rows*30,
-	w=file.cols*30,
-	style=`height:${h}px; width:${w}px;`,
-	on=
-	{
-		contextmenu:input.block,
-		pointerup:evt=>input.tile(state,evt)
-	}
-
-	return [
-		v('header',{on:{pointerup:()=>logic.shuffle(state)}},msgs[file.status]),
-		v('main',{on,style},
-			...file.overlay.array.map(function(type,id)
-			{
-				const
-				opts={data:{type},id},
-				classes=[],
-				txt=type!=='hidden'&&!!type?(type==='bomb'?'mine':type):''
-
-				if((''+type).length>1) classes.push(type!=='bomb'?'hidden':'bomb')
-				if(txt==='mine') classes.push(txt)
-
-				if(classes.length) opts.class=classes.join(' ')
-
-				return v('span',opts,config.icons[txt]||txt)
-			},[])
-		)
-	]
-}
-
-const
-{state}=truth
-(
-	logic(9,9,5),
-	truth.compile(function({state})
-	{
-		return v.render(document.body,state,output,function({path})
-		{
-			return path.join('/')==='file/move'
-		})
-	})
-)
-
-onload=()=>logic.shuffle(state)
